@@ -1,0 +1,431 @@
+---
+title: "Homework 6"
+author: "PS1702"
+date: "Spring 2020"
+output: html_document
+---
+
+- __Assigned__: April 14, 2020.
+- __Due__: April 24, 2020 at 12:00pm.
+
+The base rmarkdown file with the questions for this assignment is available in the Files Tab, under the Homework Assignments Folder, titled Homework6.rmd. Download it, complete the assignment, and knit. You will submit both the rmarkdown file and the compiled (knitted) html to Canvas. 
+
+___This assignment is only required for those deciding to take option B, or the problem set option for the grades.___
+
+<br></br>
+
+##### 1. Working with Public Opinion Data
+
+* For this part of the assignment, you will be working with public opinion data (aka survey data). 
+* The specific data you'll be using is Round 6 of the Afrobarometer, which is a public opinion survey conducted across 36 countries in Northern and Sub-Saharan Africa. Round 6 is from 2014 and 2015.
+* The file with the data is called `afb_full_r6.csv`. There is an accompanying codebook that shows how the data was coded called `AB6_Codebook.pdf` that you will be relying on extensively.
+
+<br></br>
+
+__1.1. Load data in to R into an object called `data` __
+
+```{r message=F, warning=F}
+# Load required packages
+library(dplyr)
+library(ggplot2)
+library(scales)
+
+# Load data into an object called `data`
+data = read.csv("afb_full_r6.csv")
+```
+
+<br></br>
+
+__1.2. Assess the dimensions of this data set__
+
+* How many observations are there in total? Write down answer in the r code as a comment.
+* How many variables in total? Write down answer in the r code as a comment.
+* How many countries are represented in the data set? Attach the code that produces the answer below.
+* How many survey responses for each country? Attach the code that produces the answer below.
+
+```{r message=F, warning=F}
+# How many observations in total?
+# 53935 observations
+# How many variables in total?
+# 360 variables
+# How many countries are represented in the data set?
+length(unique(data$country))
+# How many survey responses for each country? 
+table(data$country)
+```
+
+<br></br>
+
+__1.3. Let's look at some survey items that are interesting.__
+
+* Identify the variable in the data set that asks respondents about their __perception of the economic condition of the country today.__ 
+* Using `dplyr`, calculate the mean value of this variable __by country__. Take care to remove values that should not exist in the data--this variable should take a value between 1-5, so any values out of that range will have to be removed. 
+* Show the first 10 rows (and only the first 10 rows) of the data that you created using `dplyr`. DO NOT print the entire data set. 
+
+```{r message=F, warning=F}
+# CODE HERE
+#The variable is q4a
+q4a_country = data %>%
+  group_by(country) %>%
+  filter(q4a >= 1, q4a <= 5) %>%
+  summarize(q4a_mean = mean(q4a, na.rm = TRUE))
+head(q4a_country, n = 10)
+```
+
+* Identify the variable in the data set that asks respondents about their __satisfaction with democracy.__
+* Using `dplyr`, calculate the mean value of this variable __by country__. Take care to remove values that should not exist in the data--this variable should take a value between 1-4, so any values out of that range will have to be removed. 
+* Show the first 10 rows (and only the first 10 rows) of the data that you created using `dplyr`. DO NOT print the entire data set. 
+
+```{r message=F, warning=F}
+# CODE HERE
+#The variable is q41
+q41_country = data %>%
+  group_by(country) %>%
+  filter(q41 >= 1, q41 <= 4) %>%
+  summarize(q41_mean = mean(q41, na.rm = TRUE))
+head(q41_country, n = 10)
+```
+
+<br></br>
+
+__1.4. Some descriptive visualizations of the variables.__
+
+* First, subset the data to include only survey responses from Benin, Botswana, Cameroon, Kenya, Senegal, and Uganda.
+* Create bar charts for each of the distribution of responses for the __two items__ listed above for each country; perceptions of economic conditions and satisfaction with democracy.
+* The plot should look something like this. Details matter, so take a close look! 
+* __Tips__: Google. Google. Google.
+
+```{r message=F, warning=F}
+# CODE HERE
+country_labels = c("2" = "Benin", "3" = "Botswana", "6" = "Cameroon", "13" = "Kenya", "26" = "Senegal", "34" = "Uganda")
+
+six_countries = data %>%
+  filter(country == c(2, 3, 6, 13, 26, 34))
+
+q4a_six = six_countries %>%
+  group_by(country, q4a) %>%
+  filter(q4a >= 1, q4a <= 5)
+
+q4a_six$q4a = factor(q4a_six$q4a, labels = c("Very Bad", "Fairly Bad", "Neither Good nor Bad", "Fairly Good", "Very Good"))
+
+q4a_bar = q4a_six %>%
+  group_by(country) %>%
+  count(q4a) %>%
+  mutate(perc = n/sum(n)) %>%
+  ggplot(aes(x = q4a, y = perc)) + geom_col(aes(fill = q4a), position = "dodge") + geom_text(aes(label = scales::percent_format(accuracy = 0.1)(perc), y = perc), position = position_dodge(width = 1), vjust = 0, size = 1.8) + facet_grid(cols = vars(country)) + scale_x_discrete(labels = 1:5) + scale_y_continuous(labels = scales::percent_format(accuracy = 1)) + labs(x = "Economic Condition", y = "Percent", fill = "The economy is...")
+
+q4a_bar
+
+q41_six = six_countries %>%
+  group_by(country, q41) %>%
+  filter(q41 >= 1, q41 <= 4)
+
+q41_six$q41 = factor(q41_six$q41, labels = c("Not At All", "Not Very", "Fairly", "Very"))
+
+q41_bar = q41_six %>%
+  group_by(country) %>%
+  count(q41) %>%
+  mutate(perc = n/sum(n)) %>%
+  ggplot(aes(x = q41, y = perc)) + geom_col(aes(fill = q41), position = "dodge") + geom_text(aes(label = scales::percent_format(accuracy = 0.1)(perc), y = perc), position = position_dodge(width = 1), vjust = 0, size = 1.8) + facet_grid(cols = vars(country)) + scale_x_discrete(labels = 1:5) + scale_y_continuous(labels = scales::percent_format(accuracy = 1)) + labs(x = "Democratic Satisfaction", y = "Percent", fill = "How Satisfied Are You?")
+
+q41_bar
+```
+
+<br></br>
+
+##### 2. Webscraping
+
+Last week, we introduced some tools to collect pieces of data from presidential documents. For this part of the homework, we will be looking at __all__ documents in the database that are __State of the Union Addresses__
+
+Specifically, you will be asked 
+
+1. To scrape all documents returned from [this search query](https://www.presidency.ucsb.edu/advanced-search?field-keywords=&field-keywords2=&field-keywords3=&from%5Bdate%5D=&to%5Bdate%5D=&person2=&category2%5B%5D=45&items_per_page=25)
+2. To organize this data into a dataframe and output a CSV file.
+
+Below is the code for a function that passes the URL of an individual document, scrapes the text from that document, and returns that information as a data frame.
+
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(rvest)
+library(stringr)
+library(purrr)
+library(lubridate)
+
+scrape_docs <- function(URL){
+  doc <- read_html(URL)
+
+  text <- html_nodes(doc, "div.field-docs-content") %>%
+    html_text()
+  
+  all_text <- list(text = text)
+  
+  return(all_text)
+}
+```
+
+<br></br>
+
+And below is the code for a function that collects the webpage URLs.
+
+```{r, warning=FALSE, message=FALSE}
+
+scrape_urls <- function(path) {
+  
+  html <- read_html(path) #Download HTML of webpage
+  
+  links <- html_nodes(html, ".views-field-title a") %>% #select element with document URLs
+                html_attr("href")
+  
+  return(links) #output results
+}
+
+# This is just a test to see if the function works.
+scrape_test <- scrape_urls("https://www.presidency.ucsb.edu/advanced-search?field-keywords=&field-keywords2=&field-keywords3=&from%5Bdate%5D=&to%5Bdate%5D=&person2=&category2%5B%5D=45&items_per_page=25")
+
+```
+
+But this is all the information I will be providing. You must complete the rest of the task yourself. Specifically, you should:
+
+1. Write code that scrapes all documents, organizes the information in a dataframe, and writes a csv file.
+2. The end goal should be a dataset. 
+3. Split the code up into discrete steps, each with their own corresponding Rmarkdown chunk.
+4. Document (i.e. describe) each step in clear but concise Rmarkdown prose.
+5. The final chunk should:
+  * print the structure (`str`) of the final data frame.
+  * write the dataframe to a csv file. 
+  
+<br></br>
+  
+__2.1 Iterate over results pager to collect all URLs__
+
+`scrape_urls` collects all of the relative URLs from the first page of our search results (100 documents). But we have many pages of search results and need to collect the URLs of ALL results, from ALL result pages.
+
+First, you need to grab the path of all 4 result pages, and store that result in an object called `all_pages`: I wasn't going to give you any more hints, but this is not intuitive, so here it is. Look at the structure of how the URLs for each page of the displayed search are different from each other. Use `str_c` to create the 4 urls for each page of the search. For example, the first page of the search results seems to be; 
+
+https://www.presidency.ucsb.edu/advanced-search?field-keywords=&field-keywords2=&field-keywords3=&from%5Bdate%5D=&to%5Bdate%5D=&person2=&category2%5B%5D=45&items_per_page=25&page=0
+
+`Note`: You essentially need to create a character vector with page=0, page=1, page=2, and page=3 apended at the end. DO NOT BRUTE FORCE IT (i.e. type out the entire URL 4 times with page=0, 1, 2, 3 at the end.)
+
+```{r}
+# CODE HERE
+pages = c("page=0", "page=1", "page=2", "page=3")
+all_pages = str_c("https://www.presidency.ucsb.edu/advanced-search?field-keywords=&field-keywords2=&field-keywords3=&from[date]=&to[date]=&person2=&category2[]=45&items_per_page=25&", pages)
+```
+
+Now, use `scrape_urls` function to collect the URLs from all the pages of search results. Store the results as a character vector called `all_urls`. You will have to use the `map` function we used before to scrape across multiple pages of searches using NYT API (examine the lecture notes and the help function for `map`). You'll have to unlist the object using a piping operator and the `unlist` command appended to the `map` function.
+
+```{r, warning=FALSE, message=FALSE}
+# CODE HERE
+all_urls = map(all_pages, scrape_urls) %>%
+  unlist()
+```
+
+<br></br>
+
+__2.3. Modify to full path__
+
+The `HREF` we got above is what's called a *relative* URL: i.e., it looks like this:
+
+`/documents/first-annual-address-congress-0`
+
+as opposed to having a full path, like:
+
+`http://www.presidency.ucsb.edu/documents/first-annual-address-congress-0`
+
+Write code that converts the relative paths to full paths, and saves them in an object called `all_full_urls`. You can use the `str_c` function to concatenate (or add the front part of the URL to the rest of the _relative_ URL we scraped). Note that you can append all root of the URL to the entire list with a single line of code.
+
+```{r, warning=FALSE, message=FALSE}
+# CODE HERE
+all_full_urls = str_c("http://www.presidency.ucsb.edu", all_urls)
+```
+
+<br></br>
+
+__2.4. Scrape documents__
+
+Now that you have the full paths to each document, you're ready to scrape the text of each document.
+
+You'll use the `scrape_docs` function (given above), which  accepts a URL of an individual record, scrapes the page, and returns a list containing the document's full text.
+
+Using this function, iterate over `all_full_urls` to collect information on all the documents. Save the result as a dataframe, with each row representing a document. You'll have to use the `map` function again. You'll have to bind the text of each page using a piping operator and the `bind_rows()` command appended to the `map` function.
+
+Note: This might take up to an hour.
+
+```{r, warning=FALSE, message=FALSE, results='hide'}
+# CODE HERE
+docs_df = map(all_full_urls, scrape_docs) %>%
+  bind_rows()
+# Inspect the dataframe
+docs_df
+```
+
+<br></br>
+
+__2.5. Repeat this process to scrape the speaker for each document.__
+
+Tweak the code for the `scrape_docs` function I provided to create a __new function__ called `scrape_speaker` that collects information on the speaker for each document.
+
+```{r}
+# CODE HERE
+scrape_speaker <- function(URL){
+  doc <- read_html(URL)
+  
+  speaker = html_nodes(doc, ".diet-title a") %>%
+    html_text()
+  
+  all_speaker <- list(speaker = speaker)
+
+  return(all_speaker)
+}
+```
+
+<br></br>
+
+Using this function, iterate over `all_full_urls` to collect information on all the documents. Save the result as a dataframe called `speaker_df`, with each row representing a document. Note that you've already collected all the information on the URLs, so you won't need to repeat that process again. After you're done, inspect the first five rows of the dataframe.
+
+```{r, warning=FALSE, message=FALSE, results='hide'}
+# CODE HERE
+speaker_df = map(all_full_urls, scrape_speaker) %>%
+  bind_rows()
+# Inspect the first five dataframe
+head(speaker_df)
+```
+
+<br></br>
+
+__2.6 Merge the two files to create a single dataframe with speaker and text.__
+
+Merge the two dataframes into a single dataframe. It should be achievable with `cbind`. Inspect the data set. Write a `csv`file called `sotua.csv`.
+
+```{r}
+# CODE HERE
+c_df = cbind(docs_df, speaker_df)
+c_df
+write.csv(c_df, "sotua.csv")
+
+```
+
+
+##### 3. Text Analysis
+
+__3.1. Load the texts of the presidential documents as corpora and conduct preprocessing.__
+
+Now that you have a data set of state of the union addresses, you will be conducting some text analysis on it.
+Load necessary packages, and declare the `text` column of the `merged` data set as Corpora. Name this object as `presdocs`.
+
+```{r}
+# CODE HERE
+library(tm)
+library(tidyverse)
+library(ggplot2)
+library(wordcloud)
+
+presdocs = Corpus(VectorSource(c_df$text))
+```
+
+Conduct preprocessing __without__ tf-idf weighting to create a document term matrix (DTM) named `dtm`. Inspect the first five columns and rows of the dtm.
+
+```{r}
+# CODE HERE
+dtm = DocumentTermMatrix(presdocs,
+                         control = list(stopwords = TRUE,
+                                        tolower = TRUE,
+                                        removeNumbers = TRUE,
+                                        removePunctuation = TRUE,
+                                        stemming = TRUE))
+
+inspect(dtm[1:5, 1:5])
+```
+
+
+__3.2. Frequencies and wordclouds__
+
+Obtain the term frequencies as a vector by converting the document term matrix into a matrix and using `colSums` to sum the column counts. Save into an object called `freq`. Inspect `freq`.
+
+```{r}
+# CODE HERE
+freq = colSums(as.matrix(dtm))
+freq
+# How many terms?
+length(freq)
+#10907
+```
+
+Create an object called `sorted` that list the most frequent terms and the least frequent terms.
+
+```{r}
+# order
+sorted = sort(freq, decreasing = T)
+# Least frequent terms
+head(sorted)
+# most frequent
+tail(sorted)
+```
+
+Create a wordcloud from the `sorted` object.
+
+```{r}
+# CODE HERE
+set.seed(123)
+wordcloud(names(sorted), sorted, max.words=100, colors=brewer.pal(6, "Dark2"))
+```
+
+<br></br>
+
+__3.3. Frequencies and wordclouds by Presidents__
+
+* Generate separate wordclouds for three presidents; FDR, Obama, and Trump.
+* Examine whether there are any differences in the words that are frequently invoked.
+
+```{r}
+# CODE FOR FDR HERE.
+fdr = c_df %>%
+  filter(speaker == "Franklin D. Roosevelt")
+
+fdrdocs = Corpus(VectorSource(fdr$text))
+dtm = DocumentTermMatrix(fdrdocs,
+                         control = list(stopwords = TRUE,
+                                        tolower = TRUE,
+                                        removeNumbers = TRUE,
+                                        removePunctuation = TRUE,
+                                        stemming = TRUE))
+freq = colSums(as.matrix(dtm))
+sorted = sort(freq, decreasing = T)
+wordcloud(names(sorted), sorted, max.words=100, colors=brewer.pal(6, "Dark2"))
+```
+
+```{r}
+# CODE FOR OBAMA HERE.
+obama = c_df %>%
+  filter(speaker == "Barack Obama")
+
+obamadocs = Corpus(VectorSource(obama$text))
+dtm = DocumentTermMatrix(obamadocs,
+                         control = list(stopwords = TRUE,
+                                        tolower = TRUE,
+                                        removeNumbers = TRUE,
+                                        removePunctuation = TRUE,
+                                        stemming = TRUE))
+freq = colSums(as.matrix(dtm))
+sorted = sort(freq, decreasing = T)
+wordcloud(names(sorted), sorted, max.words=100, colors=brewer.pal(6, "Dark2"))
+```
+
+```{r}
+# CODE FOR TRUMP HERE.
+trump = c_df %>%
+  filter(speaker == "Donald J. Trump")
+
+trumpdocs = Corpus(VectorSource(trump$text))
+dtm = DocumentTermMatrix(trumpdocs,
+                         control = list(stopwords = TRUE,
+                                        tolower = TRUE,
+                                        removeNumbers = TRUE,
+                                        removePunctuation = TRUE,
+                                        stemming = TRUE))
+freq = colSums(as.matrix(dtm))
+sorted = sort(freq, decreasing = T)
+wordcloud(names(sorted), sorted, max.words=100, colors=brewer.pal(6, "Dark2"))
+
+# The word "American" is strongly used by Obama and Trump in comparison to FDR who uses "nation" the most. Second to that, FDR favors "war", Obama favors "job", and Trump favors "applause".
+```
